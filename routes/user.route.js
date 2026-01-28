@@ -3,7 +3,7 @@ const router = express.Router();
 const { userController } = require("../controllers");
 const { upload } = require("../configs/cloudinary");
 
-router.post("/signup", upload.single("profileImage"), userController.signUp);
+router.post("/signup", upload.single("image"), userController.signUp);
 
 router.post("/signin", userController.signIn);
 

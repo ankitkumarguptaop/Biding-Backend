@@ -12,6 +12,7 @@ const Items = sequelize.define(
       primaryKey: true,
       type: Sequelize.INTEGER,
     },
+
     title: {
       allowNull: false,
       type: Sequelize.STRING,
@@ -22,17 +23,41 @@ const Items = sequelize.define(
         },
       },
     },
+
     description: {
       type: Sequelize.TEXT,
     },
+    image: {
+      allowNull: false,
+      type: Sequelize.STRING,
+    },
+
     minBidPrice: {
       allowNull: false,
       type: Sequelize.DECIMAL(12, 2),
+      validate: {
+        min: {
+          args: [1],
+          msg: "minimum bid price must be greater than 0",
+        },
+      },
     },
+
+    currentHighestBid: {
+      type: Sequelize.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0,
+    },
+    currentWinnerId: {
+      type: Sequelize.INTEGER,
+      allowNull: true,
+    },
+
     startTime: {
       allowNull: false,
       type: Sequelize.DATE,
     },
+
     endTime: {
       allowNull: false,
       type: Sequelize.DATE,
@@ -44,23 +69,27 @@ const Items = sequelize.define(
         },
       },
     },
+
     status: {
       allowNull: false,
-      type: Sequelize.ENUM("upcoming", "active", "closed"),
-      defaultValue: "upcoming",
+      type: Sequelize.ENUM("UPCOMING", "LIVE", "CLOSED", "EXPIRED"),
+      defaultValue: "UPCOMING",
     },
     createdBy: {
       allowNull: false,
       type: Sequelize.INTEGER,
     },
+
     createdAt: {
       allowNull: false,
       type: Sequelize.DATE,
     },
+
     updatedAt: {
       allowNull: false,
       type: Sequelize.DATE,
     },
+
     deletedAt: {
       type: Sequelize.DATE,
     },
@@ -69,14 +98,22 @@ const Items = sequelize.define(
     modelName: "Items",
     tableName: "Items",
     paranoid: true,
-  }
+  },
 );
 
+Items.beforeCreate((item) => {
+  item.currentHighestBid = item.minBidPrice;
+});
 
 Items.associate = (models) => {
   Items.belongsTo(models.Users, {
     foreignKey: "createdBy",
     as: "creator",
+  });
+
+  Items.belongsTo(models.Users, {
+    foreignKey: "currentWinnerId",
+    as: "currentWinner",
   });
 
   Items.hasMany(models.Bids, {
