@@ -1,4 +1,4 @@
-const User = require("../models/user");
+const { Users } = require("../models");
 const BaseRepository = require("./base.repository");
 
 class UserRepository extends BaseRepository {
@@ -7,4 +7,4 @@ class UserRepository extends BaseRepository {
   }
 }
 
-module.exports = new UserRepository({ model: User });
+module.exports = new UserRepository({ model: Users });

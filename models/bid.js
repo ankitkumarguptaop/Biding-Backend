@@ -1,52 +1,53 @@
 "use strict";
 
-const { Sequelize } = require("sequelize");
-const { sequelize } = require("../configs/db");
+module.exports = (sequelize, DataTypes) => {
+  const Bids = sequelize.define(
+    "Bids",
+    {
+      id: {
+        allowNull: false,
+        autoIncrement: true,
+        primaryKey: true,
+        type: DataTypes.INTEGER,
+      },
+      bidAmount: {
+        allowNull: false,
+        type: DataTypes.DECIMAL(12, 2),
+      },
+      userId: {
+        allowNull: false,
+        type: DataTypes.INTEGER,
+      },
+      itemId: {
+        allowNull: false,
+        type: DataTypes.INTEGER,
+      },
+      createdAt: {
+        allowNull: false,
+        type: DataTypes.DATE,
+      },
+      updatedAt: {
+        allowNull: false,
+        type: DataTypes.DATE,
+      },
+    },
+    {
+      modelName: "Bids",
+      tableName: "Bids",
+    }
+  );
 
-const Bids = sequelize.define(
-  "Bids",
-  {
-    id: {
-      allowNull: false,
-      autoIncrement: true,
-      primaryKey: true,
-      type: Sequelize.INTEGER,
-    },
-    bidAmount: {
-      allowNull: false,
-      type: Sequelize.DECIMAL(12, 2),
-    },
-    userId: {
-      allowNull: false,
-      type: Sequelize.INTEGER,
-    },
-    itemId: {
-      allowNull: false,
-      type: Sequelize.INTEGER,
-    },
-    createdAt: {
-      allowNull: false,
-      type: Sequelize.DATE,
-    },
-    updatedAt: {
-      allowNull: false,
-      type: Sequelize.DATE,
-    },
-  },
-  {
-    modelName: "Bids",
-    tableName: "Bids",
-  }
-);
+  Bids.associate = (models) => {
+    Bids.belongsTo(models.Users, {
+      foreignKey: "userId",
+      as: "user",
+    });
 
-Bids.associate = (models) => {
-  Bids.belongsTo(models.Users, {
-    foreignKey: "userId",
-  });
+    Bids.belongsTo(models.Items, {
+      foreignKey: "itemId",
+      as: "item",
+    });
+  };
 
-  Bids.belongsTo(models.Items, {
-    foreignKey: "itemId",
-  });
+  return Bids;
 };
-
-module.exports = Bids;

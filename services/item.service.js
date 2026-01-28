@@ -1,7 +1,10 @@
+const { uploadToCloudinary } = require("../configs/cloudinary");
 const { BadRequest } = require("../libs/errors");
+const itemRepository = require("../repositories/item.repository");
+const { Bids, Users } = require("../models");
 
 exports.createItem = async (payload) => {
-  const { userId } = payload.user;
+  const { id } = payload.user;
   const { title, description, minBidPrice, startTime, endTime } = payload.body;
 
   let imageUrl = null;
@@ -14,23 +17,50 @@ exports.createItem = async (payload) => {
     }
   }
 
-  const item = await itemRepository.create({
+  await itemRepository.create({
     title,
     description,
     minBidPrice,
     startTime,
     endTime,
     image: imageUrl,
-    userId,
+    createdBy: id,
   });
-
 
   return { message: "Item created successfully" };
 };
 
 exports.listItem = async (payload) => {
-  const { userId } = payload.user;
-  const { title, description, minBidPrice, startTime, endTime } = payload.body;
+  const { status } = payload.query;
+  const items = await itemRepository.findAndCountAll({ status });
+  return items;
+};
 
-  return { message: "Item created successfully" };
+exports.getItem = async (payload) => {
+  const { id } = payload.params;
+
+  const item = await itemRepository.findOne({ id }, [
+    {
+      model: Bids,
+      as: "bids",
+      include: [
+        {
+          model: Users,
+          as: "user",
+          attributes: ["id", "name", "email"],
+        },
+      ],
+    },
+    {
+      model: Users,
+      as: "currentWinner",
+      attributes: ["id", "name", "email"],
+    },
+    {
+      model: Users,
+      as: "creator",
+      attributes: ["id", "name", "email"],
+    },
+  ]);
+  return item;
 };

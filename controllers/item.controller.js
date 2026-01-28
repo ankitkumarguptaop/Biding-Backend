@@ -17,3 +17,13 @@ exports.listItems = async (req, res, next) => {
     next(error);
   }
 };
+
+
+exports.getItem = async (req, res, next) => {
+  try {
+    const response = await itemService.getItem(req);
+    res.status(200).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
