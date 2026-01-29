@@ -1,8 +1,9 @@
-const { or } = require("sequelize");
+const { or, Op } = require("sequelize");
 const { uploadToCloudinary } = require("../configs/cloudinary");
 const { BadRequest } = require("../libs/errors");
 const { Bids, Users } = require("../models");
 const itemRepository = require("../repositories/item.repository");
+const { getIO } = require("../libs/socketConnection");
 
 exports.createItem = async (payload) => {
   const { id } = payload.user;
@@ -33,7 +34,7 @@ exports.createItem = async (payload) => {
 
 exports.listItem = async (payload) => {
   const { status } = payload.query;
-  
+
   const criteria = {};
   if (status && ["UPCOMING", "LIVE", "CLOSED", "EXPIRED"].includes(status)) {
     criteria.status = status;
@@ -47,7 +48,7 @@ exports.getItem = async (payload) => {
   const { id } = payload.params;
 
   const item = await itemRepository.findOne(
-    { id }, 
+    { id },
     [
       {
         model: Bids,
@@ -74,7 +75,42 @@ exports.getItem = async (payload) => {
     {},
     {
       order: [[{ model: Bids, as: "bids" }, "createdAt", "DESC"]],
-    }
+    },
   );
   return item;
+};
+
+exports.changeItemStatus = async () => {
+  const now = new Date();
+  const updatedItems = await itemRepository.update({
+    payload: { status: "LIVE" },
+    criteria: {
+      status: or(["UPCOMING"]),
+      startTime: { [Op.lt]: now },
+    },
+    returning: true,
+  });
+  if (updatedItems.count > 0) {
+    updatedItems.rows.forEach((item) => {
+      getIO().emit("item-status-changed", { itemId: item.id, status: "LIVE" });
+    });
+  }
+
+  const closedItems = await itemRepository.update({
+    payload: { status: "CLOSED" },
+    criteria: {
+      status: or(["LIVE"]),
+      endTime: { [Op.lt]: now },
+    },
+    returning: true,
+  });
+  if (closedItems.count > 0) {
+    closedItems.rows.forEach((item) => {
+      getIO().emit("item-status-changed", {
+        itemId: item.id,
+        status: "CLOSED",
+      });
+    });
+  }
+  return { message: "Item status updated successfully" };
 };
