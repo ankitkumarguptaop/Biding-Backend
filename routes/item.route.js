@@ -8,7 +8,6 @@ const { role } = require("../middlewares/role.middleware");
 router.get("/", auth, itemController.listItems);
 router.get("/:id", auth, itemController.getItem);
 router.post("/", auth, role("ADMIN"), upload.single("image"), itemController.createItem);
-// router.put("/", auth, role("admin"), upload.single("image"), itemController.updateItem);
 
 
 module.exports = router;

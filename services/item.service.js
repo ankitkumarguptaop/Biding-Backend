@@ -1,7 +1,8 @@
+const { or } = require("sequelize");
 const { uploadToCloudinary } = require("../configs/cloudinary");
 const { BadRequest } = require("../libs/errors");
-const itemRepository = require("../repositories/item.repository");
 const { Bids, Users } = require("../models");
+const itemRepository = require("../repositories/item.repository");
 
 exports.createItem = async (payload) => {
   const { id } = payload.user;
@@ -32,35 +33,48 @@ exports.createItem = async (payload) => {
 
 exports.listItem = async (payload) => {
   const { status } = payload.query;
-  const items = await itemRepository.findAndCountAll({ status });
+  
+  const criteria = {};
+  if (status && ["UPCOMING", "LIVE", "CLOSED", "EXPIRED"].includes(status)) {
+    criteria.status = status;
+  }
+
+  const items = await itemRepository.findAndCountAll({ criteria });
   return items;
 };
 
 exports.getItem = async (payload) => {
   const { id } = payload.params;
 
-  const item = await itemRepository.findOne({ id }, [
+  const item = await itemRepository.findOne(
+    { id }, 
+    [
+      {
+        model: Bids,
+        as: "bids",
+        include: [
+          {
+            model: Users,
+            as: "user",
+            attributes: ["id", "name", "email"],
+          },
+        ],
+      },
+      {
+        model: Users,
+        as: "currentWinner",
+        attributes: ["id", "name", "email"],
+      },
+      {
+        model: Users,
+        as: "creator",
+        attributes: ["id", "name", "email"],
+      },
+    ],
+    {},
     {
-      model: Bids,
-      as: "bids",
-      include: [
-        {
-          model: Users,
-          as: "user",
-          attributes: ["id", "name", "email"],
-        },
-      ],
-    },
-    {
-      model: Users,
-      as: "currentWinner",
-      attributes: ["id", "name", "email"],
-    },
-    {
-      model: Users,
-      as: "creator",
-      attributes: ["id", "name", "email"],
-    },
-  ]);
+      order: [[{ model: Bids, as: "bids" }, "createdAt", "DESC"]],
+    }
+  );
   return item;
 };
