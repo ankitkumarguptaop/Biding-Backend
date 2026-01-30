@@ -33,14 +33,30 @@ exports.createItem = async (payload) => {
 };
 
 exports.listItem = async (payload) => {
-  const { status } = payload.query;
+  const { status , search } = payload.query;
 
   const criteria = {};
   if (status && ["UPCOMING", "LIVE", "CLOSED", "EXPIRED"].includes(status)) {
     criteria.status = status;
   }
 
-  const items = await itemRepository.findAndCountAll({ criteria });
+  if( search ){
+    criteria.title = { [Op.iLike]: `%${search}%` };
+  }
+  const include = [
+    {
+      model: Users,
+      as: "currentWinner",
+      attributes: ["id", "name", "email"],
+    },
+    {
+      model: Users,
+      as: "creator",
+      attributes: ["id", "name", "email"],
+    },
+  ];
+
+  const items = await itemRepository.findAndCountAll({ criteria , include });
   return items;
 };
 
@@ -88,10 +104,11 @@ exports.changeItemStatus = async () => {
       status: or(["UPCOMING"]),
       startTime: { [Op.lt]: now },
     },
-    returning: true,
+   options: { returning: true },
   });
-  if (updatedItems.count > 0) {
-    updatedItems.rows.forEach((item) => {
+  if (updatedItems[0] > 0) {
+    updatedItems[1].forEach((item) => {
+      console.log(item)
       getIO().emit("item-status-changed", { itemId: item.id, status: "LIVE" });
     });
   }
@@ -102,10 +119,10 @@ exports.changeItemStatus = async () => {
       status: or(["LIVE"]),
       endTime: { [Op.lt]: now },
     },
-    returning: true,
+   options: { returning: true },
   });
-  if (closedItems.count > 0) {
-    closedItems.rows.forEach((item) => {
+  if (closedItems[0] > 0) {
+    closedItems[1].forEach((item) => {
       getIO().emit("item-status-changed", {
         itemId: item.id,
         status: "CLOSED",

@@ -55,7 +55,7 @@ exports.createBid = async (payload) => {
     },
   ];
 
-  // Emit bid event to auction room
+ 
   try {
     const bid = await bidRepository.findOne(criteria, include);
     const io = getIO();
@@ -63,6 +63,7 @@ exports.createBid = async (payload) => {
     io.to(roomName).emit("new-bid", {
       bid: bid,
     });
+    io.emit("bid-placed", { bid: bid });
     console.log(`Bid emitted to room: ${roomName}`);
   } catch (error) {
     console.error("Error emitting bid event:", error.message);
