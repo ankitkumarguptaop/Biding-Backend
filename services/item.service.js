@@ -4,6 +4,7 @@ const { BadRequest } = require("../libs/errors");
 const { Bids, Users } = require("../models");
 const itemRepository = require("../repositories/item.repository");
 const { getIO } = require("../libs/socketConnection");
+const { createNotificationToAll } = require("./notification.service");
 
 exports.createItem = async (payload) => {
   const { id } = payload.user;
@@ -33,14 +34,14 @@ exports.createItem = async (payload) => {
 };
 
 exports.listItem = async (payload) => {
-  const { status , search } = payload.query;
+  const { status, search } = payload.query;
 
   const criteria = {};
   if (status && ["UPCOMING", "LIVE", "CLOSED", "EXPIRED"].includes(status)) {
     criteria.status = status;
   }
 
-  if( search ){
+  if (search) {
     criteria.title = { [Op.iLike]: `%${search}%` };
   }
   const include = [
@@ -56,7 +57,7 @@ exports.listItem = async (payload) => {
     },
   ];
 
-  const items = await itemRepository.findAndCountAll({ criteria , include });
+  const items = await itemRepository.findAndCountAll({ criteria, include });
   return items;
 };
 
@@ -98,18 +99,20 @@ exports.getItem = async (payload) => {
 
 exports.changeItemStatus = async () => {
   const now = new Date();
+
   const updatedItems = await itemRepository.update({
     payload: { status: "LIVE" },
     criteria: {
       status: or(["UPCOMING"]),
       startTime: { [Op.lt]: now },
     },
-   options: { returning: true },
+    options: { returning: true },
   });
   if (updatedItems[0] > 0) {
-    updatedItems[1].forEach((item) => {
-      console.log(item)
+    updatedItems[1].forEach(async (item) => {
+      console.log(item);
       getIO().emit("item-status-changed", { itemId: item.id, status: "LIVE" });
+      await createNotificationToAll({ message: `Item ${item.title} is now LIVE` });
     });
   }
 
@@ -119,14 +122,16 @@ exports.changeItemStatus = async () => {
       status: or(["LIVE"]),
       endTime: { [Op.lt]: now },
     },
-   options: { returning: true },
+    options: { returning: true },
   });
   if (closedItems[0] > 0) {
-    closedItems[1].forEach((item) => {
+    closedItems[1].forEach(async (item) => {
       getIO().emit("item-status-changed", {
         itemId: item.id,
         status: "CLOSED",
       });
+      await createNotificationToAll({ message: `Item ${item.title} is now CLOSED` });
+
     });
   }
   return { message: "Item status updated successfully" };

@@ -1,7 +1,7 @@
 const { BadRequest } = require("../libs/errors");
 const bidRepository = require("../repositories/bid.repository");
 const itemRepository = require("../repositories/item.repository");
-const { Bids, Users, Items } = require("../models");
+const { Users, Items } = require("../models");
 const { getIO } = require("../libs/socketConnection");
 
 exports.createBid = async (payload) => {
