@@ -5,6 +5,7 @@ const { Bids, Users } = require("../models");
 const itemRepository = require("../repositories/item.repository");
 const { getIO } = require("../libs/socketConnection");
 const { createNotificationToAll } = require("./notification.service");
+const { title } = require("process");
 
 exports.createItem = async (payload) => {
   const { id } = payload.user;
@@ -111,7 +112,7 @@ exports.changeItemStatus = async () => {
   if (updatedItems[0] > 0) {
     updatedItems[1].forEach(async (item) => {
       console.log(item);
-      getIO().emit("item-status-changed", { itemId: item.id, status: "LIVE" });
+      getIO().emit("item-status-changed", { itemId: item.id, status: "LIVE" , title: item.title});
       await createNotificationToAll({ message: `Item ${item.title} is now LIVE` });
     });
   }

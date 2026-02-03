@@ -20,3 +20,45 @@ exports.createNotificationToAll = async (payload) => {
 
   return { message: "Notification created successfully" };
 };
+
+exports.listNotification = async (payload) => {
+  const { id } = payload.user;
+  if (!id) {
+    throw new BadRequest("User ID is required to list notifications");
+  }
+
+  const notifications = await notificationRepository.findAll({ criteria :{ userId: id }});
+
+  return notifications;
+};
+
+exports.markAllAsRead = async (payload) => {
+  const { id } = payload.user;
+  if (!id) {
+    throw new BadRequest("User ID is required to list notifications");
+  }
+
+  const notifications = await notificationRepository.update({
+    payload: { isRead: true },
+    criteria: { userId: id, isRead: false },
+  });
+
+  return notifications;
+};
+
+exports.markAsRead = async (payload) => {
+  const { id } = payload.user;
+  const notificationId = payload.params.id;
+  if (!id) {
+    throw new BadRequest("User ID is required to list notifications");
+  }
+  if (!notificationId) {
+    throw new BadRequest("Notification ID is required to mark as read");
+  }
+  const notifications = await notificationRepository.update({
+    payload: { isRead: true },
+    criteria: { userId: id, isRead: false, id: notificationId },
+  });
+
+  return notifications;
+};
